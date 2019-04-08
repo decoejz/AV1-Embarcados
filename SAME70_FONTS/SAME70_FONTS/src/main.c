@@ -81,23 +81,21 @@ void RTC_Handler(void)
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
 				print_time();
+				
+		int now_hour, now_minute, now_sec;
+		rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
 
-		if (alarm_min==60){
-			alarm_hour += 1;
-			alarm_min = 0;
-			alarm_sec = 1;
+		if (now_minute==60){
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+			rtc_set_time_alarm(RTC, 1, now_hour+1, 1, now_minute, 1, now_sec+1);
 		}
-		else if(alarm_sec==60){
-			alarm_sec = 1;
-			alarm_min += 1;
+		else if(now_sec==60){
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute+1, 1, now_sec+1);
 		}
 		else{
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
 			alarm_sec += 1;
 		}
 	}
@@ -204,17 +202,9 @@ void print_time(void){
 	
 	rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
 	
-	/*int specific_h = HOUR - alarm_hour;//*now_hour;
-	int specific_m = MINUTE - alarm_min;//*now_minute;
-	int specific_s = SECONDS - alarm_sec;//*now_sec;*/
+	sprintf(hour_s,"%d:%d:%d",now_hour,now_minute,now_sec);
 	
-	sprintf(hour_s,"%d",now_hour);
-	sprintf(min_s,"%d",now_minute);
-	sprintf(sec_s,"%d",now_sec);
-	
-	font_draw_text(&arial_72, hour_s, 15, 75, 1);	
-	font_draw_text(&arial_72, min_s, 115, 75, 1);	
-	font_draw_text(&arial_72, sec_s, 215, 75, 1);
+	font_draw_text(&calibri_36, hour_s, 15, 75, 1);
 }
 
 void count_vel(int now_time){
@@ -224,7 +214,7 @@ void count_vel(int now_time){
 	char velocidade[32];
 	
 	sprintf(velocidade,"%d",vel);
-	font_draw_text(&arial_72, velocidade, 15, 230, 1);
+	font_draw_text(&calibri_36, velocidade, 15, 230, 1);
 }
 
 int main(void) {
@@ -239,22 +229,15 @@ int main(void) {
 	
 	font_draw_text(&calibri_36, "Tempo Decorrido", 15, 15, 1);
 	
-	
-	font_draw_text(&arial_72, "00", 15, 75, 1);	
-	//font_draw_text(&calibri_36, ":", 110, 75, 1);
-	font_draw_text(&arial_72, "00", 115, 75, 1);
-	//font_draw_text(&calibri_36, ":", 210, 75, 1);		
-	font_draw_text(&arial_72, "00", 215, 75, 1);
+	font_draw_text(&calibri_36, "00:00:00", 15, 75, 1);
 	
 	font_draw_text(&calibri_36, "Velocidade", 15, 170, 1);
 	
-	font_draw_text(&arial_72, "00", 15, 230, 1);
-	font_draw_text(&calibri_36, "km/h", 115, 230, 1);
+	font_draw_text(&calibri_36, "00 km/h", 15, 230, 1);
 	
 	font_draw_text(&calibri_36, "Distancia", 15, 345, 1);
 	
-	font_draw_text(&arial_72, "00", 15, 400, 1);
-	font_draw_text(&calibri_36, "m", 115, 400, 1);
+	font_draw_text(&calibri_36, "00 m", 15, 400, 1);
 	
 	//font_draw_text(&sourcecodepro_28, "OIMUNDO", 50, 50, 1);
 	//font_draw_text(&arial_72, "102456", 50, 200, 2);
