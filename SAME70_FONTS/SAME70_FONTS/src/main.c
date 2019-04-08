@@ -29,22 +29,27 @@
 #define BUT_PIN1				  28
 #define BUT_PIN_MASK1			  (1 << BUT_PIN1)
 
-#define LED_PIO       PIOC
-#define LED_PIO_ID    ID_PIOC
-#define LED_IDX       8u
-#define LED_IDX_MASK  (1u << LED_IDX)
-
 struct ili9488_opt_t g_ili9488_display_opt;
 
 volatile Bool f_rtt_alarme = false;
 volatile Bool print_time_value = false;
-
 volatile pulsos = 0;
 volatile float distancia_total = 0;
+volatile Bool play_pause = false;
 
-void print_time(void);
+void distancia(void);
 void count_vel(int now_time);
-void pin_toggle(Pio *pio, uint32_t mask);
+void print_time(void);
+static void RTT_init(uint16_t pllPreScale, uint32_t IrqNPulses);
+static float get_time_rtt();
+void RTT_Handler(void);
+void BUT_init(void);
+void Button0_Handler();
+void RTC_init();
+void RTC_Handler(void);
+void font_draw_text(tFont *font, const char *text, int x, int y, int spacing);
+void configure_lcd(void);
+void Button1_Handler();
 
 
 void configure_lcd(void){
@@ -58,13 +63,6 @@ void configure_lcd(void){
 	ili9488_init(&g_ili9488_display_opt);
 	ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, ILI9488_LCD_HEIGHT-1);
 	
-}
-
-void pin_toggle(Pio *pio, uint32_t mask){
-	if(pio_get_output_data_status(pio, mask))
-	pio_clear(pio, mask);
-	else
-	pio_set(pio,mask);
 }
 
 void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
@@ -93,7 +91,6 @@ void RTC_Handler(void)
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
 		rtc_clear_status(RTC, RTC_SCCR_SECCLR);
 		print_time_value = true;
-		//print_time();
 	}
 	
 	/* Time or date alarm */
@@ -132,29 +129,34 @@ void Button0_Handler(){
 	pulsos += 1;
 }
 
+void Button1_Handler(){
+	play_pause = true;
+}
+
 void BUT_init(void){
 	/* config. pino botao em modo de entrada */
 	pmc_enable_periph_clk(BUT_PIO_ID);
+	pmc_enable_periph_clk(BUT_PIO_ID1);
 	
 	pio_set_input(BUT_PIO, BUT_PIN_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_input(BUT_PIO1, BUT_PIN_MASK1, PIO_PULLUP | PIO_DEBOUNCE);
 
 	/* config. interrupcao em borda de descida no botao do kit */
 	/* indica funcao (but_Handler) a ser chamada quando houver uma interrupção */
 	pio_enable_interrupt(BUT_PIO, BUT_PIN_MASK);
+	pio_enable_interrupt(BUT_PIO1, BUT_PIN_MASK1);
 	
 	pio_handler_set(BUT_PIO, BUT_PIO_ID, BUT_PIN_MASK, PIO_IT_FALL_EDGE, Button0_Handler);
+	pio_handler_set(BUT_PIO1, BUT_PIO_ID1, BUT_PIN_MASK1, PIO_IT_FALL_EDGE, Button1_Handler);
 
 	/* habilita interrupçcão do PIO que controla o botao */
 	/* e configura sua prioridade                        */
 	NVIC_EnableIRQ(BUT_PIO_ID);
 	NVIC_SetPriority(BUT_PIO_ID, 1);
+	
+	NVIC_EnableIRQ(BUT_PIO_ID1);
+	NVIC_SetPriority(BUT_PIO_ID1, 1);
 };
-
-void io_init(void){
-	/* led */
-	pmc_enable_periph_clk(LED_PIO_ID);
-	pio_configure(LED_PIO, PIO_OUTPUT_0, LED_IDX_MASK, PIO_DEFAULT);
-}
 
 void RTT_Handler(void)
 {
@@ -168,8 +170,7 @@ void RTT_Handler(void)
 
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
-		pin_toggle(LED_PIO, LED_IDX_MASK);
-		f_rtt_alarme = true;                 // flag RTT alarme
+		f_rtt_alarme = true;          // flag RTT alarme
 		pulsos = 0;
 	}
 }
@@ -238,7 +239,6 @@ int main(void) {
 	
 	RTC_init();
 	BUT_init();
-	io_init();
 	
 	f_rtt_alarme = true;
 	
