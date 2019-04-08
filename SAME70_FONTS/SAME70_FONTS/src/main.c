@@ -229,8 +229,6 @@ int main(void) {
 	
 	font_draw_text(&calibri_36, "Tempo Decorrido", 15, 15, 1);
 	
-	font_draw_text(&calibri_36, "00:00:00", 15, 75, 1);
-	
 	font_draw_text(&calibri_36, "Velocidade", 15, 170, 1);
 	
 	font_draw_text(&calibri_36, "00 km/h", 15, 230, 1);
