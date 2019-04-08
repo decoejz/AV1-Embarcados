@@ -24,12 +24,19 @@
 #define BUT_PIN				  11
 #define BUT_PIN_MASK			  (1 << BUT_PIN)
 
+#define LED_PIO       PIOC
+#define LED_PIO_ID    ID_PIOC
+#define LED_IDX       8u
+#define LED_IDX_MASK  (1u << LED_IDX)
+
 struct ili9488_opt_t g_ili9488_display_opt;
 
 volatile Bool f_rtt_alarme = false;
 
 volatile pulsos = 0;
 void print_time(void);
+void count_vel(int now_time);
+void pin_toggle(Pio *pio, uint32_t mask);
 
 
 void configure_lcd(void){
@@ -45,6 +52,12 @@ void configure_lcd(void){
 	
 }
 
+void pin_toggle(Pio *pio, uint32_t mask){
+	if(pio_get_output_data_status(pio, mask))
+	pio_clear(pio, mask);
+	else
+	pio_set(pio,mask);
+}
 
 void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
 	char *p = text;
@@ -76,7 +89,7 @@ void RTC_Handler(void)
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
-				print_time();
+		print_time();
 				
 		int now_hour, now_minute, now_sec;
 		rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
@@ -144,6 +157,12 @@ void BUT_init(void){
 	NVIC_SetPriority(BUT_PIO_ID, 1);
 };
 
+void io_init(void){
+	/* led */
+	pmc_enable_periph_clk(LED_PIO_ID);
+	pio_configure(LED_PIO, PIO_OUTPUT_0, LED_IDX_MASK, PIO_DEFAULT);
+}
+
 void RTT_Handler(void)
 {
 	uint32_t ul_status;
@@ -156,9 +175,8 @@ void RTT_Handler(void)
 
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
-		//count_vel(get_time_rtt());
-		f_rtt_alarme = true;                  // flag RTT alarme
-		
+		pin_toggle(LED_PIO, LED_IDX_MASK);
+		f_rtt_alarme = true;                 // flag RTT alarme
 		pulsos = 0;
 	}
 }
@@ -210,6 +228,7 @@ void count_vel(int now_time){
 	
 	sprintf(velocidade,"%d",vel);
 	font_draw_text(&calibri_36, velocidade, 15, 230, 1);
+	pulsos = 0;
 }
 
 int main(void) {
@@ -218,6 +237,10 @@ int main(void) {
 	configure_lcd();
 	
 	RTC_init();
+	BUT_init();
+	io_init();
+	
+	f_rtt_alarme = true;
 	
 	int now_hour, now_minute, now_sec;
 	rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
@@ -235,9 +258,6 @@ int main(void) {
 	
 	font_draw_text(&calibri_36, "00 m", 15, 400, 1);
 	
-	//font_draw_text(&sourcecodepro_28, "OIMUNDO", 50, 50, 1);
-	//font_draw_text(&arial_72, "102456", 50, 200, 2);
-	
 	while(1) {
 		
 		if (f_rtt_alarme){
@@ -245,8 +265,10 @@ int main(void) {
 		  uint32_t irqRTTvalue  = 4;
      
 		  RTT_init(pllPreScale, irqRTTvalue);         
-		  count_vel(get_time_rtt());
+		  count_vel(irqRTTvalue);
 		  f_rtt_alarme = false;
 		}
+		
+		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
