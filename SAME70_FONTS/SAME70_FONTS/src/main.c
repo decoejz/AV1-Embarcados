@@ -11,10 +11,10 @@
 #include "calibri_36.h"
 #include "arial_72.h"
 
-#define YEAR        2019
-#define MOUNTH      4
-#define DAY         8
-#define WEEK        2
+#define YEAR        0
+#define MOUNTH      0
+#define DAY         0
+#define WEEK        0
 #define HOUR        0
 #define MINUTE      0
 #define SECONDS     0
@@ -23,10 +23,6 @@
 #define BUT_PIO				  PIOA
 #define BUT_PIN				  11
 #define BUT_PIN_MASK			  (1 << BUT_PIN)
-
-volatile alarm_sec = SECONDS+2;
-volatile alarm_min = MINUTE;
-volatile alarm_hour = HOUR;
 
 struct ili9488_opt_t g_ili9488_display_opt;
 
@@ -85,19 +81,18 @@ void RTC_Handler(void)
 		int now_hour, now_minute, now_sec;
 		rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
 
-		if (now_minute==60){
+		/*if (now_minute==60){
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, now_hour+1, 1, now_minute, 1, now_sec+1);
+			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
 		}
 		else if(now_sec==60){
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute+1, 1, now_sec+1);
+			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
 		}
-		else{
+		else{*/
 			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
 			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
-			alarm_sec += 1;
-		}
+		//}
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
@@ -224,8 +219,11 @@ int main(void) {
 	
 	RTC_init();
 	
+	int now_hour, now_minute, now_sec;
+	rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
+	
 	rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-	rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, SECONDS+1);
+	rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
 	
 	font_draw_text(&calibri_36, "Tempo Decorrido", 15, 15, 1);
 	
