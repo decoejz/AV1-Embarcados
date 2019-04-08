@@ -34,6 +34,8 @@ struct ili9488_opt_t g_ili9488_display_opt;
 volatile Bool f_rtt_alarme = false;
 
 volatile pulsos = 0;
+volatile float distancia_total = 0;
+
 void print_time(void);
 void count_vel(int now_time);
 void pin_toggle(Pio *pio, uint32_t mask);
@@ -226,9 +228,18 @@ void count_vel(int now_time){
 	
 	char velocidade[32];
 	
-	sprintf(velocidade,"%d",vel);
+	sprintf(velocidade,"%f km/h",vel);
 	font_draw_text(&calibri_36, velocidade, 15, 230, 1);
 	pulsos = 0;
+}
+
+void distancia(void){
+	distancia_total += 2*3.14*0.325*pulsos;
+	
+	char distancia[32];
+	
+	sprintf(distancia,"%f m",distancia_total);
+	font_draw_text(&calibri_36, distancia, 15, 400, 1);
 }
 
 int main(void) {
@@ -264,7 +275,8 @@ int main(void) {
 		  uint16_t pllPreScale = (int) (((float) 32768) / 2.0);
 		  uint32_t irqRTTvalue  = 4;
      
-		  RTT_init(pllPreScale, irqRTTvalue);         
+		  RTT_init(pllPreScale, irqRTTvalue); 
+		  distancia();       
 		  count_vel(irqRTTvalue);
 		  f_rtt_alarme = false;
 		}
