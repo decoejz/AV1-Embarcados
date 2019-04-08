@@ -24,6 +24,10 @@
 #define BUT_PIN				  19
 #define BUT_PIN_MASK			  (1 << BUT_PIN)
 
+#define BUT_PIO_ID1			  ID_PIOD
+#define BUT_PIO1			  PIOD
+#define BUT_PIN1				  28
+#define BUT_PIN_MASK1			  (1 << BUT_PIN1)
 
 #define LED_PIO       PIOC
 #define LED_PIO_ID    ID_PIOC
@@ -33,6 +37,7 @@
 struct ili9488_opt_t g_ili9488_display_opt;
 
 volatile Bool f_rtt_alarme = false;
+volatile Bool print_time_value = false;
 
 volatile pulsos = 0;
 volatile float distancia_total = 0;
@@ -87,28 +92,13 @@ void RTC_Handler(void)
 	*/
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
 		rtc_clear_status(RTC, RTC_SCCR_SECCLR);
+		print_time_value = true;
+		//print_time();
 	}
 	
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
-		print_time();
-				
-		int now_hour, now_minute, now_sec;
-		rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
-
-		/*if (now_minute==60){
-			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
-		}
-		else if(now_sec==60){
-			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
-		}
-		else{*/
-			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-			rtc_set_time_alarm(RTC, 1, now_hour, 1, now_minute, 1, now_sec+1);
-		//}
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
@@ -135,7 +125,7 @@ void RTC_init(){
 	NVIC_EnableIRQ(RTC_IRQn);
 
 	/* Ativa interrupcao via alarme */
-	rtc_enable_interrupt(RTC,  RTC_IER_ALREN);
+	rtc_enable_interrupt(RTC,  RTC_IER_SECEN);
 }
 
 void Button0_Handler(){
@@ -211,15 +201,13 @@ static void RTT_init(uint16_t pllPreScale, uint32_t IrqNPulses)
 
 void print_time(void){
 	char hour_s[32];
-	char min_s[32];
-	char sec_s[32];
 	
 	int now_hour, now_minute, now_sec;
 	
 	rtc_get_time(RTC,&now_hour,&now_minute,&now_sec);
 	
-	sprintf(hour_s,"%d:%d:%d",now_hour,now_minute,now_sec);
-	
+	sprintf(hour_s,"%02d:%02d:%02d",now_hour,now_minute,now_sec);
+
 	font_draw_text(&calibri_36, hour_s, 15, 75, 1);
 }
 
@@ -272,13 +260,18 @@ int main(void) {
 	
 	while(1) {
 		
+		if (print_time_value){
+			print_time();
+			print_time_value = false;
+		}
+		
 		if (f_rtt_alarme){
 		  uint16_t pllPreScale = (int) (((float) 32768) / 2.0);
 		  uint32_t irqRTTvalue  = 4;
      
 		  RTT_init(pllPreScale, irqRTTvalue); 
 		  distancia();       
-		  count_vel(irqRTTvalue);
+		  count_vel(2);
 		  f_rtt_alarme = false;
 		}
 		
