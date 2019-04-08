@@ -19,9 +19,9 @@
 #define MINUTE      5
 #define SECONDS     0
 
-volatile alarm_sec = 2;
-volatile alarm_min = 5;
-volatile alarm_hour = 15;
+volatile alarm_sec = SECONDS+2;
+volatile alarm_min = MINUTE;
+volatile alarm_hour = HOUR;
 
 struct ili9488_opt_t g_ili9488_display_opt;
 
@@ -157,9 +157,9 @@ int main(void) {
 	
 	
 	font_draw_text(&arial_72, "00", 15, 75, 1);	
-	font_draw_text(&calibri_36, ":", 50, 75, 1);
+	//font_draw_text(&calibri_36, ":", 110, 75, 1);
 	font_draw_text(&arial_72, "00", 115, 75, 1);
-	font_draw_text(&calibri_36, ":", 150, 75, 1);		
+	//font_draw_text(&calibri_36, ":", 210, 75, 1);		
 	font_draw_text(&arial_72, "00", 215, 75, 1);
 	
 	font_draw_text(&calibri_36, "Velocidade", 15, 170, 1);
