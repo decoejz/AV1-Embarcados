@@ -11,6 +11,17 @@
 #include "calibri_36.h"
 #include "arial_72.h"
 
+#define YEAR        2019
+#define MOUNTH      4
+#define DAY         8
+#define WEEK        2
+#define HOUR        15
+#define MINUTE      5
+#define SECONDS     0
+
+volatile alarm_sec = 2;
+volatile alarm_min = 5;
+volatile alarm_hour = 15;
 
 struct ili9488_opt_t g_ili9488_display_opt;
 
@@ -42,16 +53,122 @@ void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
 	}	
 }
 
+void RTC_Handler(void)
+{
+	uint32_t ul_status = rtc_get_status(RTC);
+
+	/*
+	*  Verifica por qual motivo entrou
+	*  na interrupcao, se foi por segundo
+	*  ou Alarm
+	*/
+	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
+		rtc_clear_status(RTC, RTC_SCCR_SECCLR);
+	}
+	
+	/* Time or date alarm */
+	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
+		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
+	}
+	
+	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
+	rtc_clear_status(RTC, RTC_SCCR_TIMCLR);
+	rtc_clear_status(RTC, RTC_SCCR_CALCLR);
+	rtc_clear_status(RTC, RTC_SCCR_TDERRCLR);
+	
+	if (alarm_min==60){
+		alarm_hour += 1;
+		alarm_min = 0;
+		alarm_sec = 0;
+		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+	}
+	else if(alarm_sec==60){
+		alarm_sec = 1;
+		alarm_min += 1;
+		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+	}
+	else{
+		alarm_sec += 1;
+		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, SECONDS+alarm_sec);
+	}
+	
+}
+
+void RTC_init(){
+	/* Configura o PMC */
+	pmc_enable_periph_clk(ID_RTC);
+
+	/* Default RTC configuration, 24-hour mode */
+	rtc_set_hour_mode(RTC, 0);
+
+	/* Configura data e hora manualmente */
+	rtc_set_date(RTC, YEAR, MOUNTH, DAY, WEEK);
+	rtc_set_time(RTC, HOUR, MINUTE, SECONDS);
+
+	/* Configure RTC interrupts */
+	NVIC_DisableIRQ(RTC_IRQn);
+	NVIC_ClearPendingIRQ(RTC_IRQn);
+	NVIC_SetPriority(RTC_IRQn, 0);
+	NVIC_EnableIRQ(RTC_IRQn);
+
+	/* Ativa interrupcao via alarme */
+	rtc_enable_interrupt(RTC,  RTC_IER_ALREN);
+}
+
+void print_time(void){
+	char hour_s[32];
+	char min_s[32];
+	char sec_s[32];
+	
+	int *now_hour, *now_minute, *now_sec;
+	
+	rtc_get_time(RTC,now_hour,now_minute,now_sec);
+	
+	int specific_h = HOUR - *now_hour;
+	int specific_m = MINUTE - *now_minute;
+	int specific_s = SECONDS - *now_sec;
+	
+	sprintf(hour_s,"%d",specific_h);
+	sprintf(min_s,"%d",specific_m);
+	sprintf(sec_s,"%d",specific_s);
+	
+	font_draw_text(&sourcecodepro_28, hour_s, 15, 70, 1);
+	font_draw_text(&sourcecodepro_28, ":", 30, 70, 1);
+	
+	font_draw_text(&sourcecodepro_28, min_s, 45, 70, 1);
+	font_draw_text(&sourcecodepro_28, ":", 60, 70, 1);
+	
+	font_draw_text(&sourcecodepro_28, sec_s, 75, 70, 1);
+}
 
 int main(void) {
 	board_init();
 	sysclk_init();	
 	configure_lcd();
 	
-	font_draw_text(&sourcecodepro_28, "OIMUNDO", 50, 50, 1);
-	font_draw_text(&calibri_36, "Oi Mundo! #$!@", 50, 100, 1);
-	font_draw_text(&arial_72, "102456", 50, 200, 2);
+	RTC_init();
+	
+	rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+	rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, SECONDS+1);
+	
+	font_draw_text(&calibri_36, "Tempo Decorrido", 15, 15, 1);
+	font_draw_text(&calibri_36, "Velocidade", 15, 170, 1);
+	font_draw_text(&calibri_36, "Distancia", 15, 345, 1);
+	
+	font_draw_text(&sourcecodepro_28, "00", 15, 70, 1);
+	font_draw_text(&sourcecodepro_28, ":", 30, 70, 1);
+	
+	font_draw_text(&sourcecodepro_28, "00", 45, 70, 1);
+	font_draw_text(&sourcecodepro_28, ":", 60, 70, 1);
+	
+	font_draw_text(&sourcecodepro_28, "00", 75, 70, 1);
+	
+	//font_draw_text(&sourcecodepro_28, "OIMUNDO", 50, 50, 1);
+	//font_draw_text(&arial_72, "102456", 50, 200, 2);
 	while(1) {
-		
+		print_time();
 	}
 }
