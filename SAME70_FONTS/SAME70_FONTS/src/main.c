@@ -21,7 +21,7 @@
 
 #define BUT_PIO_ID			  ID_PIOA
 #define BUT_PIO				  PIOA
-#define BUT_PIN				  11
+#define BUT_PIN				  19
 #define BUT_PIN_MASK			  (1 << BUT_PIN)
 
 #define LED_PIO       PIOC
