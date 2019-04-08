@@ -69,32 +69,31 @@ void RTC_Handler(void)
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
+		
+		if (alarm_min==60){
+			alarm_hour += 1;
+			alarm_min = 0;
+			alarm_sec = 1;
+			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+		}
+		else if(alarm_sec==60){
+			alarm_sec = 1;
+			alarm_min += 1;
+			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+		}
+		else{
+			rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
+			rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
+			alarm_sec += 1;
+		}
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
 	rtc_clear_status(RTC, RTC_SCCR_TIMCLR);
 	rtc_clear_status(RTC, RTC_SCCR_CALCLR);
-	rtc_clear_status(RTC, RTC_SCCR_TDERRCLR);
-	
-	if (alarm_min==60){
-		alarm_hour += 1;
-		alarm_min = 0;
-		alarm_sec = 0;
-		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
-	}
-	else if(alarm_sec==60){
-		alarm_sec = 1;
-		alarm_min += 1;
-		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, alarm_sec);
-	}
-	else{
-		alarm_sec += 1;
-		rtc_set_date_alarm(RTC, 1, MOUNTH, 1, DAY);
-		rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, SECONDS+alarm_sec);
-	}
-	
+	rtc_clear_status(RTC, RTC_SCCR_TDERRCLR);	
 }
 
 void RTC_init(){
@@ -127,21 +126,21 @@ void print_time(void){
 	
 	rtc_get_time(RTC,now_hour,now_minute,now_sec);
 	
-	int specific_h = HOUR - *now_hour;
-	int specific_m = MINUTE - *now_minute;
-	int specific_s = SECONDS - *now_sec;
+	/*int specific_h = HOUR - alarm_hour;//*now_hour;
+	int specific_m = MINUTE - alarm_min;//*now_minute;
+	int specific_s = SECONDS - alarm_sec;//*now_sec;*/
+	
+	int specific_h = alarm_hour - HOUR;
+	int specific_m = alarm_min - MINUTE;
+	int specific_s = alarm_sec - SECONDS;
 	
 	sprintf(hour_s,"%d",specific_h);
 	sprintf(min_s,"%d",specific_m);
 	sprintf(sec_s,"%d",specific_s);
 	
-	font_draw_text(&sourcecodepro_28, hour_s, 15, 70, 1);
-	font_draw_text(&sourcecodepro_28, ":", 30, 70, 1);
-	
-	font_draw_text(&sourcecodepro_28, min_s, 45, 70, 1);
-	font_draw_text(&sourcecodepro_28, ":", 60, 70, 1);
-	
-	font_draw_text(&sourcecodepro_28, sec_s, 75, 70, 1);
+	font_draw_text(&arial_72, hour_s, 15, 75, 1);	
+	font_draw_text(&arial_72, min_s, 115, 75, 1);	
+	font_draw_text(&arial_72, sec_s, 215, 75, 1);
 }
 
 int main(void) {
@@ -155,20 +154,28 @@ int main(void) {
 	rtc_set_time_alarm(RTC, 1, alarm_hour, 1, alarm_min, 1, SECONDS+1);
 	
 	font_draw_text(&calibri_36, "Tempo Decorrido", 15, 15, 1);
+	
+	
+	font_draw_text(&arial_72, "00", 15, 75, 1);	
+	font_draw_text(&calibri_36, ":", 50, 75, 1);
+	font_draw_text(&arial_72, "00", 115, 75, 1);
+	font_draw_text(&calibri_36, ":", 150, 75, 1);		
+	font_draw_text(&arial_72, "00", 215, 75, 1);
+	
 	font_draw_text(&calibri_36, "Velocidade", 15, 170, 1);
+	
+	font_draw_text(&arial_72, "00", 15, 230, 1);
+	font_draw_text(&calibri_36, "km/h", 115, 230, 1);
+	
 	font_draw_text(&calibri_36, "Distancia", 15, 345, 1);
 	
-	font_draw_text(&sourcecodepro_28, "00", 15, 70, 1);
-	font_draw_text(&sourcecodepro_28, ":", 30, 70, 1);
-	
-	font_draw_text(&sourcecodepro_28, "00", 45, 70, 1);
-	font_draw_text(&sourcecodepro_28, ":", 60, 70, 1);
-	
-	font_draw_text(&sourcecodepro_28, "00", 75, 70, 1);
+	font_draw_text(&arial_72, "00", 15, 400, 1);
+	font_draw_text(&calibri_36, "m", 115, 400, 1);
 	
 	//font_draw_text(&sourcecodepro_28, "OIMUNDO", 50, 50, 1);
 	//font_draw_text(&arial_72, "102456", 50, 200, 2);
 	while(1) {
 		print_time();
+		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
