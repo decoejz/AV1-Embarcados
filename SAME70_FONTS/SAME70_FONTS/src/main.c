@@ -44,12 +44,13 @@ static void RTT_init(uint16_t pllPreScale, uint32_t IrqNPulses);
 static float get_time_rtt();
 void RTT_Handler(void);
 void BUT_init(void);
-void Button0_Handler();
+void Button0_Handler(void);
 void RTC_init();
 void RTC_Handler(void);
 void font_draw_text(tFont *font, const char *text, int x, int y, int spacing);
 void configure_lcd(void);
-void Button1_Handler();
+void Button1_Handler(void);
+void zera_tudo(void);
 
 
 void configure_lcd(void){
@@ -125,11 +126,11 @@ void RTC_init(){
 	rtc_enable_interrupt(RTC,  RTC_IER_SECEN);
 }
 
-void Button0_Handler(){
+void Button0_Handler(void){
 	pulsos += 1;
 }
 
-void Button1_Handler(){
+void Button1_Handler(void){
 	play_pause = true;
 }
 
@@ -152,10 +153,10 @@ void BUT_init(void){
 	/* habilita interrupçcão do PIO que controla o botao */
 	/* e configura sua prioridade                        */
 	NVIC_EnableIRQ(BUT_PIO_ID);
-	NVIC_SetPriority(BUT_PIO_ID, 1);
+	NVIC_SetPriority(BUT_PIO_ID, 16);
 	
 	NVIC_EnableIRQ(BUT_PIO_ID1);
-	NVIC_SetPriority(BUT_PIO_ID1, 1);
+	NVIC_SetPriority(BUT_PIO_ID1, 17);
 };
 
 void RTT_Handler(void)
@@ -232,6 +233,12 @@ void distancia(void){
 	font_draw_text(&calibri_36, distancia, 15, 400, 1);
 }
 
+void zera_tudo(void){
+	distancia_total = 0;
+	rtc_set_date(RTC, YEAR, MOUNTH, DAY, WEEK);
+	rtc_set_time(RTC, HOUR, MINUTE, SECONDS);
+}
+
 int main(void) {
 	board_init();
 	sysclk_init();	
@@ -273,6 +280,11 @@ int main(void) {
 		  distancia();       
 		  count_vel(2);
 		  f_rtt_alarme = false;
+		}
+		
+		if(play_pause){
+			zera_tudo();
+			play_pause = false;
 		}
 		
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
